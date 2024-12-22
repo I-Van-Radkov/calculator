@@ -23,15 +23,29 @@ type ErrorResponse struct {
 	Error string `json:"error"`
 }
 
+type Application struct {
+}
+
+func New() *Application {
+	return &Application{}
+}
+
+func (a *Application) Run() error {
+	http.HandleFunc("/api/v1/calculate", LoggingMiddleware(CalculatorHandler))
+
+	log.Println("Сервер запущен на адресе :8080")
+	return http.ListenAndServe(":8080", nil)
+}
+
 func CalculatorHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		http.Error(w, "{\"error\": \"Internal server error\"}", http.StatusInternalServerError)
 		return
 	}
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		http.Error(w, "{\"error\": \"Failed to read request body\"}", http.StatusBadRequest)
+		http.Error(w, "{\"error\": \"Internal server error\"}", http.StatusInternalServerError)
 		return
 	}
 	defer r.Body.Close()
@@ -39,7 +53,7 @@ func CalculatorHandler(w http.ResponseWriter, r *http.Request) {
 	var request CalculateRequest
 	err = json.Unmarshal(body, &request)
 	if err != nil {
-		http.Error(w, "{\"error\": \"Invalid request body\"}", http.StatusBadRequest)
+		http.Error(w, "{\"error\": \"Internal server error\"}", http.StatusInternalServerError)
 		return
 	}
 
@@ -75,6 +89,6 @@ func LoggingMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		next.ServeHTTP(w, r)
 
 		elapsed := time.Since(start)
-		log.Printf("Обработка запроса %s заняла %s", r.RequestURI, elapsed)
+		log.Printf("Обработка запроса заняла %s", elapsed)
 	}
 }

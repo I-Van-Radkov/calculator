@@ -162,7 +162,7 @@ func calculateOperation(operand1, operand2 float64, operator string) (float64, e
 		return operand1 * operand2, nil
 	case "/":
 		if operand2 == 0 {
-			return 0, fmt.Errorf("division by zero")
+			return 0, fmt.Errorf("expression is not valid")
 		}
 		return operand1 / operand2, nil
 	default:
