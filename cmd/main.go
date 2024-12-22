@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	http.HandleFunc("/api/v1/calculate", application.CalculatorHandler)
+	http.HandleFunc("/api/v1/calculate", application.LoggingMiddleware(application.CalculatorHandler))
 
 	log.Println("Сервер запущен на адресе :8080")
 	err := http.ListenAndServe(":8080", nil)

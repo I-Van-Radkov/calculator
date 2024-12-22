@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
+	"time"
 
 	calculation "github.com/I-Van-Radkov/calculator/pkg"
 )
@@ -64,4 +66,15 @@ func CalculatorHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
+}
+
+func LoggingMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+
+		next.ServeHTTP(w, r)
+
+		elapsed := time.Since(start)
+		log.Printf("Обработка запроса %s заняла %s", r.RequestURI, elapsed)
+	}
 }
