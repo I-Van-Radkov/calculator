@@ -1,9 +1,10 @@
 package main
 
 import (
-	"fmt"
+	"net/http"
 )
 
 func main() {
-	fmt.Println("Hello")
+	http.HandleFunc("/api/v1/calculate", CalculatorHandler)
+	http.ListenAndServe(":8080", nil)
 }
