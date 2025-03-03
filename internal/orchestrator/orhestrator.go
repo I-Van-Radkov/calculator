@@ -3,71 +3,34 @@ package orchestrator
 import (
 	"log"
 	"net/http"
-	"os"
-	"strconv"
+	"sync"
 )
-
-type config struct {
-	timeAddition        int
-	timeSubtraction     int
-	timeMultiplications int
-	timeDivisions       int
-}
-
-func newConfig() *config {
-	ta, err := strconv.Atoi(os.Getenv("TIME_ADDITION_MS"))
-	if err != nil {
-
-	}
-
-	ts, err := strconv.Atoi(os.Getenv("TIME_SUBTRACTION_MS"))
-	if err != nil {
-
-	}
-
-	tm, err := strconv.Atoi(os.Getenv("TIME_MULTIPLICATIONS_MS"))
-	if err != nil {
-
-	}
-
-	td, err := strconv.Atoi(os.Getenv("TIME_DIVISIONS_MS"))
-	if err != nil {
-
-	}
-
-	return &config{
-		timeAddition:        ta,
-		timeSubtraction:     ts,
-		timeMultiplications: tm,
-		timeDivisions:       td,
-	}
-}
-
-type Orchestrator struct {
-	config config
-	mu sync.Mutex
-}
 
 func NewOrchestrator() *Orchestrator {
 	return &Orchestrator{
-		config: *newConfig(),
+		config:      *newConfig(),
+		expressions: make(map[string]Expression),
+		tasks:       make(chan Task, 100),
+		taskResults: make(map[string]float64),
+		results:     make(chan Result, 100),
+		mu:          sync.Mutex{},
 	}
 }
 
 func (o *Orchestrator) Run() error {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/api/v1/calculate", calculateHandler)
-	mux.HandleFunc("/api/v1/expressions", expressionsHandler)
-	mux.HandleFunc("/api/v1/expressions/", expressionsIDHandler)
+	mux.HandleFunc("/api/v1/calculate", o.calculateHandler)
+	mux.HandleFunc("/api/v1/expressions", o.expressionsHandler)
+	mux.HandleFunc("/api/v1/expressions/", o.expressionIDHandler)
 
 	mux.HandleFunc("/internal/task", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
 			o.getTaskHandler(w, r)
 		} else if r.Method == http.MethodPost {
-			//o.postTaskHandler(w, r)
+			o.postTaskHandler(w, r)
 		} else {
-			http.Error(w, `{"error":"Wrong Method"}`, http.StatusMethodNotAllowed)
+			http.Error(w, "{\"error\": \"Internal server error\"}", http.StatusInternalServerError)
 		}
 	})
 
