@@ -107,6 +107,7 @@ func (o *Orchestrator) processTasksSequentially(id string, taskList []Task) {
 		o.tasks <- task
 
 		// Ожидание результата
+
 		result := <-o.results
 		if result.ID == task.ID {
 			o.mu.Lock()
@@ -155,6 +156,7 @@ func getTokens(expression string) ([]string, error) {
 
 	strRez := ""
 	isLastDigit := false
+	lastBracket := ""
 
 	for _, el := range expression {
 		if el >= '0' && el <= '9' || el == '.' {
@@ -167,19 +169,54 @@ func getTokens(expression string) ([]string, error) {
 				}
 				strRez = string(el)
 			}
+			lastBracket = ""
 		} else if el == '-' || el == '+' || el == '*' || el == '/' {
-			if !isLastDigit && el == '-' { // Для отрицательных чисел
+			if !isLastDigit && lastBracket == "(" && el == '-' { // Для отрицательных чисел
 				isLastDigit = true
+				lastBracket = ""
 				if strRez != "" {
 					tokens = append(tokens, strRez)
 				}
 				strRez = string(el)
+			} else if lastBracket == "(" && el != '-' {
+				fmt.Println("q")
+				return nil, fmt.Errorf("expression is not valid")
 			} else {
-				if !isLastDigit && el != '-' {
+				if !isLastDigit && lastBracket == "" && el != '-' {
+					fmt.Println(isLastDigit, string(el), "1")
+					return nil, fmt.Errorf("expression is not valid")
+				}
+
+				lastBracket = ""
+				isLastDigit = false
+				if strRez != "" {
+					tokens = append(tokens, strRez)
+				}
+				strRez = string(el)
+			}
+		} else if el == '(' || el == ')' {
+			if !isLastDigit && lastBracket == "" && el == ')' {
+				return nil, fmt.Errorf("expression is not valid")
+			}
+
+			if el == '(' {
+				if lastBracket == "(" || (!isLastDigit && lastBracket == "") {
+					isLastDigit = false
+					lastBracket = "("
+					if strRez != "" {
+						tokens = append(tokens, strRez)
+					}
+					strRez = string(el)
+				} else {
+					return nil, fmt.Errorf("expression is not valid")
+				}
+			} else {
+				if lastBracket == "(" && !isLastDigit {
 					return nil, fmt.Errorf("expression is not valid")
 				}
 
 				isLastDigit = false
+				lastBracket = ")"
 				if strRez != "" {
 					tokens = append(tokens, strRez)
 				}
@@ -190,13 +227,14 @@ func getTokens(expression string) ([]string, error) {
 		}
 	}
 
-	if !isLastDigit { // если выражение заканчивается не числом
-		return nil, fmt.Errorf("expression is not valid")
-	}
-
 	if strRez != "" {
 		tokens = append(tokens, strRez)
 	}
+
+	if !isLastDigit && lastBracket == "" { // если выражение заканчивается не числом
+		return nil, fmt.Errorf("expression is not valid")
+	}
+
 	return tokens, nil
 }
 

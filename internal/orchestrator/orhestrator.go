@@ -20,15 +20,15 @@ func NewOrchestrator() *Orchestrator {
 func (o *Orchestrator) Run() error {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/api/v1/calculate", o.calculateHandler)
-	mux.HandleFunc("/api/v1/expressions", o.expressionsHandler)
-	mux.HandleFunc("/api/v1/expressions/", o.expressionIDHandler)
+	mux.HandleFunc("/api/v1/calculate", o.CalculateHandler)
+	mux.HandleFunc("/api/v1/expressions", o.ExpressionsHandler)
+	mux.HandleFunc("/api/v1/expressions/", o.ExpressionIDHandler)
 
 	mux.HandleFunc("/internal/task", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
-			o.getTaskHandler(w, r)
+			o.GetTaskHandler(w, r)
 		} else if r.Method == http.MethodPost {
-			o.postTaskHandler(w, r)
+			o.PostTaskHandler(w, r)
 		} else {
 			http.Error(w, "{\"error\": \"Internal server error\"}", http.StatusInternalServerError)
 		}

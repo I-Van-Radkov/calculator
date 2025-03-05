@@ -34,7 +34,7 @@ func (a *Agent) Run() {
 	select {}
 }
 
-func performOperation(arg1, arg2 float64, operation string) float64 {
+func PerformOperation(arg1, arg2 float64, operation string) float64 {
 	switch operation {
 	case "+":
 		return arg1 + arg2
@@ -71,9 +71,11 @@ func (a *Agent) worker(workerID int) {
 				continue
 			}
 
-			/*fmt.Println("task:", task)
-			log.Printf("worker %d получил выражение: %v %s %v", workerID, task.Arg1, task.Operation, task.Arg2)*/
-			resultCalculation := performOperation(task.Arg1, task.Arg2, task.Operation)
+			timer := time.NewTimer(time.Millisecond * time.Duration(task.OperationTime)) // начало таймера времени операции
+
+			resultCalculation := PerformOperation(task.Arg1, task.Arg2, task.Operation)
+
+			<-timer.C
 
 			resultData := Result{
 				ID:     task.ID,

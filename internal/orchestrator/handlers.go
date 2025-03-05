@@ -9,28 +9,27 @@ import (
 	"github.com/google/uuid"
 )
 
-type CalculateRequest struct {
-	Expression string `json:"expression"`
-}
+const (
+	errNotFound       = "No task available"
+	errInvalidData    = "Invalid data"
+	errExprIsNotValid = "Expression is not valid"
+	errInternalServer = "Internal server error"
+)
 
-type ErrorResponse struct {
-	Error string `json:"error"`
-}
-
-func (o *Orchestrator) getTaskHandler(w http.ResponseWriter, _ *http.Request) {
+func (o *Orchestrator) GetTaskHandler(w http.ResponseWriter, _ *http.Request) {
 	select {
 	case task := <-o.tasks:
 		log.Printf("New Task: ID: %s; Arg1: %v; Arg2: %v; Operation: %s; OperationTime: %d", task.ID, task.Arg1, task.Arg2, task.Operation, task.OperationTime)
 		json.NewEncoder(w).Encode(task)
 	default:
-		http.Error(w, "No task available", http.StatusNotFound)
+		http.Error(w, errNotFound, http.StatusNotFound)
 	}
 }
 
-func (o *Orchestrator) postTaskHandler(w http.ResponseWriter, r *http.Request) {
+func (o *Orchestrator) PostTaskHandler(w http.ResponseWriter, r *http.Request) {
 	var result Result
 	if err := json.NewDecoder(r.Body).Decode(&result); err != nil {
-		http.Error(w, "Invalid data", http.StatusUnprocessableEntity)
+		http.Error(w, errInvalidData, http.StatusUnprocessableEntity)
 		return
 	}
 
@@ -38,7 +37,7 @@ func (o *Orchestrator) postTaskHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (o *Orchestrator) calculateHandler(w http.ResponseWriter, r *http.Request) {
+func (o *Orchestrator) CalculateHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "{\"error\": \"Internal server error\"}", http.StatusInternalServerError)
 		return
@@ -63,12 +62,12 @@ func (o *Orchestrator) calculateHandler(w http.ResponseWriter, r *http.Request) 
 		var errorResponse ErrorResponse
 		if err.Error() == "expression is not valid" {
 			errorResponse = ErrorResponse{
-				Error: "Expression is not valid",
+				Error: errExprIsNotValid,
 			}
 			w.WriteHeader(http.StatusUnprocessableEntity)
 		} else {
 			errorResponse = ErrorResponse{
-				Error: "Internal server error",
+				Error: errInternalServer,
 			}
 			w.WriteHeader(http.StatusInternalServerError)
 		}
@@ -83,7 +82,7 @@ func (o *Orchestrator) calculateHandler(w http.ResponseWriter, r *http.Request) 
 	taskList, err := o.createTasksFromRPN(rpn) // Разбиение на таски
 	if err != nil {
 		errorResponse := ErrorResponse{
-			Error: "Expression is not valid",
+			Error: errExprIsNotValid,
 		}
 		log.Printf("[ERR] createTasksFromRPN: %v", err)
 		w.WriteHeader(http.StatusUnprocessableEntity)
@@ -98,7 +97,7 @@ func (o *Orchestrator) calculateHandler(w http.ResponseWriter, r *http.Request) 
 	log.Printf("Успешный результат /calculate: id : %s", id)
 }
 
-func (o *Orchestrator) expressionsHandler(w http.ResponseWriter, r *http.Request) {
+func (o *Orchestrator) ExpressionsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "{\"error\": \"Internal server error\"}", http.StatusInternalServerError)
 		return
@@ -116,7 +115,7 @@ func (o *Orchestrator) expressionsHandler(w http.ResponseWriter, r *http.Request
 	json.NewEncoder(w).Encode(map[string][]Expression{"expressions": expressionList})
 }
 
-func (o *Orchestrator) expressionIDHandler(w http.ResponseWriter, r *http.Request) {
+func (o *Orchestrator) ExpressionIDHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "{\"error\": \"Internal server error\"}", http.StatusInternalServerError)
 		return
